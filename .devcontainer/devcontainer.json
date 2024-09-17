@@ -3,12 +3,13 @@
 {
 	"name": "Debian",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+	"image": "mcr.microsoft.com/devcontainers/base:debian",
 	"features": {
 		"ghcr.io/devcontainers/features/common-utils:2": {},
 		"ghcr.io/devcontainers/features/github-cli:1": {},
 		"ghcr.io/devcontainers/features/rust:1": {}
 	},
+	"postCreateCommand": "echo 1 > /proc/sys/kernel/perf_event_paranoid",
 	"customizations": {
 		"vscode": {
 			"extensions": [

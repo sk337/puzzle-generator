@@ -25,10 +25,17 @@ pub struct Solution {
     pub values: Vec<Puzzle>,
 }
 
-#[derive(Debug, Readable, Writable, PartialEq)]
+#[derive(Debug)]
 pub struct PuzzleGen {
     pub pieces: Puzzle,
     pub solutions: Vec<Puzzle>,
+    rng: ThreadRng,
+}
+
+impl PartialEq for PuzzleGen {
+    fn eq(&self, other: &Self) -> bool {
+        self.pieces == other.pieces && self.solutions == other.solutions
+    }
 }
 
 /// Get a random number between 1 and max+1
@@ -65,8 +72,7 @@ fn validate_puzzle(puzzle: &Puzzle) -> bool {
 }
 
 /// Generate a puzzle with a maximum edge type
-fn generate_puzzle_with_max(max: u8) -> Puzzle {
-    let mut rng = rand::thread_rng();
+fn generate_puzzle_with_max(max: u8, rng: &mut ThreadRng) -> Puzzle {
     let mut puzzle: Puzzle = [[Piece {
         id: 0,
         top: 0,
@@ -90,12 +96,12 @@ fn generate_puzzle_with_max(max: u8) -> Puzzle {
             let bottom = if row_idx == SIZE - 1 {
                 0
             } else {
-                get_rand_int_with_max(max, &mut rng)
+                get_rand_int_with_max(max, rng)
             };
             let right = if col_idx == SIZE - 1 {
                 0
             } else {
-                get_rand_int_with_max(max, &mut rng)
+                get_rand_int_with_max(max, rng)
             };
             let id = row_idx * SIZE + col_idx;
 
@@ -145,9 +151,11 @@ pub fn get_similarity_score(puzzle: &Puzzle, other: &Puzzle) -> f32 {
 
 impl PuzzleGen {
     pub fn new(edge_types: u8) -> Self {
+        let mut rng = rand::thread_rng();
         Self {
-            pieces: generate_puzzle_with_max(edge_types),
+            pieces: generate_puzzle_with_max(edge_types, &mut rng),
             solutions: Vec::new(),
+            rng
         }
     }
 
@@ -156,7 +164,7 @@ impl PuzzleGen {
     }
 
     pub fn new_puzzle(&mut self) {
-        self.pieces = generate_puzzle_with_max(SIZE as u8);
+        self.pieces = generate_puzzle_with_max(SIZE as u8, &mut self.rng);
         self.solutions.clear();
     }
 
@@ -230,14 +238,14 @@ mod tests {
 
     #[test]
     fn flatten_puzzle_test() {
-        let puzzle = generate_puzzle_with_max(5);
+        let puzzle = generate_puzzle_with_max(5, &mut rand::thread_rng());
         let pieces = flatten_puzzle(&puzzle);
         assert_eq!(pieces.len(), SIZE * SIZE);
     }
 
     #[test]
     fn grow_puzzle_test() {
-        let puzzle = generate_puzzle_with_max(5);
+        let puzzle = generate_puzzle_with_max(5, &mut rand::thread_rng());
         let pieces = flatten_puzzle(&puzzle);
         let new_puzzle = grow_puzzle(pieces);
         assert_eq!(puzzle, new_puzzle);
@@ -245,13 +253,13 @@ mod tests {
 
     #[test]
     fn generate_puzzle_generates_valid_puzzle() {
-        let puzzle = generate_puzzle_with_max(5);
+        let puzzle = generate_puzzle_with_max(5, &mut rand::thread_rng());
         assert!(validate_puzzle(&puzzle));
     }
 
     #[test]
     fn test_validate_puzzle() {
-        let puzzle = generate_puzzle_with_max(5);
+        let puzzle = generate_puzzle_with_max(5, &mut rand::thread_rng());
         assert!(validate_puzzle(&puzzle));
         let mut invalid_puzzle = puzzle;
         invalid_puzzle[0][0].right = 0;
