@@ -1,0 +1,19 @@
+[package]
+name = "puzzle-generator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ctrlc = "3.4.5"
+flate2 = "1.0.33"
+rand = "0.8.5"
+speedy = "0.8.7"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+panic = "unwind"
+debug = true
+
+[profile.bench]
