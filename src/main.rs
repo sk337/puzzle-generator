@@ -13,7 +13,7 @@ static TRESHOLD: f32 = 0.25;
 static EDGE_COUNT: u8 = 6;
 static SUFFIX_COMPRESSED: &str = ".puzz.gz";
 static SUFFIX: &str = ".puzz";
-static COMPRESS: bool = true;
+static COMPRESS: bool = false;
 
 fn main() {
     if fs::read_dir("puzzles").is_err() {
@@ -21,6 +21,8 @@ fn main() {
     }
 
     let puzzles = get_puzzles_from_dir();
+
+    // println!("Puzzles: {:?}", puzzles[0]);
 
     println!("Puzzles: {}", puzzles.len());
 
@@ -108,11 +110,13 @@ fn get_puzzle_with_score(threshold: f32) -> Solution {
         pg.new_puzzle();
         pg.solve();
 
+        if tries % 10_000 == 0 {
+            println!("Tries: {}. Closest: {}", tries, closest);
+        }
+
         if pg.solutions.len() <= 1 {
             tries += 1;
-            if tries % 10_000 == 0 {
-                println!("Tries: {}. Closest: {}", tries, closest);
-            }
+            
             if terminated.load(Ordering::SeqCst) {
                 let best_solution = Solution {
                     score: closest,
@@ -131,6 +135,7 @@ fn get_puzzle_with_score(threshold: f32) -> Solution {
         if score < closest {
             closest = score;
         }
+        
         tries += 1;
     }
 

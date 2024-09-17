@@ -1,6 +1,9 @@
-use rand::{rngs::ThreadRng, Rng};
+mod psudo_rand;
+mod rand_macros;
+use rand_macros::*;
+use psudo_rand::Prand;
+// use rand::{rngs::ThreadRng, Rng};
 use speedy::{Readable, Writable};
-
 pub const SIZE: usize = 5;
 
 #[derive(Debug, Readable, Writable, Copy, Clone, PartialEq, Eq, Hash)]
@@ -10,6 +13,15 @@ pub struct Piece {
     right: u8,
     bottom: u8,
     left: u8,
+}
+
+// macro to generate compiletime random u64 seed
+macro_rules! seed {
+    () => {
+        {
+            random!(u64)
+        }
+    };
 }
 
 pub type PuzzleRow = [Piece; SIZE];
@@ -25,22 +37,9 @@ pub struct Solution {
     pub values: Vec<Puzzle>,
 }
 
-#[derive(Debug)]
-pub struct PuzzleGen {
-    pub pieces: Puzzle,
-    pub solutions: Vec<Puzzle>,
-    rng: ThreadRng,
-}
-
-impl PartialEq for PuzzleGen {
-    fn eq(&self, other: &Self) -> bool {
-        self.pieces == other.pieces && self.solutions == other.solutions
-    }
-}
-
 /// Get a random number between 1 and max+1
-fn get_rand_int_with_max(max: u8, rng: &mut ThreadRng) -> u8 {
-    rng.gen_range(1..=max)
+fn get_rand_int_with_max(max: u8, rng: &mut Prand) -> u8 {
+    rng.get_rand_int_with_max(max as u64) as u8
 }
 
 /// Validate a puzzle
@@ -72,7 +71,7 @@ fn validate_puzzle(puzzle: &Puzzle) -> bool {
 }
 
 /// Generate a puzzle with a maximum edge type
-fn generate_puzzle_with_max(max: u8, rng: &mut ThreadRng) -> Puzzle {
+fn generate_puzzle_with_max(max: u8, rng: &mut Prand) -> Puzzle {
     let mut puzzle: Puzzle = [[Piece {
         id: 0,
         top: 0,
@@ -118,6 +117,7 @@ fn generate_puzzle_with_max(max: u8, rng: &mut ThreadRng) -> Puzzle {
     puzzle
 }
 
+
 fn flatten_puzzle(puzzle: &Puzzle) -> Vec<Piece> {
     puzzle.iter().flat_map(|row| row.iter()).cloned().collect()
 }
@@ -149,20 +149,35 @@ pub fn get_similarity_score(puzzle: &Puzzle, other: &Puzzle) -> f32 {
     matching_pieces as f32 / (SIZE * SIZE) as f32
 }
 
+
+#[derive(Debug)]
+pub struct PuzzleGen {
+    pub pieces: Puzzle,
+    pub solutions: Vec<Puzzle>,
+    rng: Prand,
+}
+
+impl PartialEq for PuzzleGen {
+    fn eq(&self, other: &Self) -> bool {
+        self.pieces == other.pieces && self.solutions == other.solutions
+    }
+}
+
+
 impl PuzzleGen {
     pub fn new(edge_types: u8) -> Self {
-        let mut rng = rand::thread_rng();
+        let mut rng = Prand::new(seed!());
         Self {
             pieces: generate_puzzle_with_max(edge_types, &mut rng),
             solutions: Vec::new(),
-            rng
+            rng: Prand::new(seed!()),
         }
     }
 
     pub fn solve(&mut self) {
         self.recursive_solve(Vec::new(), flatten_puzzle(&self.pieces));
     }
-
+    
     pub fn new_puzzle(&mut self) {
         self.pieces = generate_puzzle_with_max(SIZE as u8, &mut self.rng);
         self.solutions.clear();
@@ -232,20 +247,20 @@ mod tests {
 
     #[test]
     fn test_get_rand_int_with_max() {
-        let rand_num = get_rand_int_with_max(5, &mut rand::thread_rng());
+        let rand_num = get_rand_int_with_max(5, &mut Prand::new(seed!()));
         assert!(rand_num >= 1 && rand_num <= 5);
     }
 
     #[test]
     fn flatten_puzzle_test() {
-        let puzzle = generate_puzzle_with_max(5, &mut rand::thread_rng());
+        let puzzle = generate_puzzle_with_max(5, &mut Prand::new(seed!()));
         let pieces = flatten_puzzle(&puzzle);
         assert_eq!(pieces.len(), SIZE * SIZE);
     }
 
     #[test]
     fn grow_puzzle_test() {
-        let puzzle = generate_puzzle_with_max(5, &mut rand::thread_rng());
+        let puzzle = generate_puzzle_with_max(5, &mut Prand::new(seed!()));
         let pieces = flatten_puzzle(&puzzle);
         let new_puzzle = grow_puzzle(pieces);
         assert_eq!(puzzle, new_puzzle);
@@ -253,13 +268,13 @@ mod tests {
 
     #[test]
     fn generate_puzzle_generates_valid_puzzle() {
-        let puzzle = generate_puzzle_with_max(5, &mut rand::thread_rng());
+        let puzzle = generate_puzzle_with_max(5, &mut Prand::new(seed!()));
         assert!(validate_puzzle(&puzzle));
     }
 
     #[test]
     fn test_validate_puzzle() {
-        let puzzle = generate_puzzle_with_max(5, &mut rand::thread_rng());
+        let puzzle = generate_puzzle_with_max(5, &mut Prand::new(seed!()));
         assert!(validate_puzzle(&puzzle));
         let mut invalid_puzzle = puzzle;
         invalid_puzzle[0][0].right = 0;

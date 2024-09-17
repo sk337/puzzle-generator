@@ -13,7 +13,6 @@ speedy = "0.8.7"
 lto = true
 codegen-units = 1
 opt-level = 3
-panic = "unwind"
-debug = true
-
-[profile.bench]
+panic = "abort"
+debug = false
+incremental = false
